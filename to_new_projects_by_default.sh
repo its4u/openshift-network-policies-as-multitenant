@@ -1,6 +1,6 @@
 #!/bin/bash
 
-if jq --version > /dev/null 2> /dev/null;then
+if which jq > /dev/null 2> /dev/null;then
     echo "jq found.";
 else
     echo "Please install jq";
@@ -8,13 +8,14 @@ else
 fi
 
 
-if oc version > /dev/null 2> /dev/null;then
+if which oc > /dev/null 2> /dev/null;then
     echo "oc found.";
 else
     echo "Please install oc";
     exit 1
 fi
 
+exit 0
 
 if oc whoami > /dev/null 2> /dev/null;then
     echo "Already connected to cluster."
@@ -34,9 +35,6 @@ jq '.objects += [$var1,$var2,$var3]' default_template.json \
     --slurpfile var3 ./network-policies/allow-from-openshift-monitoring.json \
     > new_default_template.json;
 
-
-exit 0
-
 echo "Uploading template to cluster..."
 oc create -f new_default_template.json -n openshift-config
 
@@ -52,4 +50,6 @@ echo ""
 echo "Done! create new project to verify changes have been made"
 echo "> oc new-project test-network-policy"
 echo "> oc get networkpolicy"
-echo "Should give 3 policies, 'allow-from-openshift-ingress', 'allow-from-openshift-monitoring', 'allow-same-namespace'
+echo "Should give 3 policies, 'allow-from-openshift-ingress', 'allow-from-openshift-monitoring', 'allow-same-namespace'"
+
+

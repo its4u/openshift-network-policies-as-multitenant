@@ -1,6 +1,6 @@
 #!/bin/bash
 
-if oc version > /dev/null 2> /dev/null; then
+if which oc > /dev/null 2> /dev/null; then
     echo "oc found."
 else
     echo "Please install oc."

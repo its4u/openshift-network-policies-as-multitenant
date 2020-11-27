@@ -15,8 +15,6 @@ else
     exit 1
 fi
 
-exit 0
-
 if oc whoami > /dev/null 2> /dev/null;then
     echo "Already connected to cluster."
 else

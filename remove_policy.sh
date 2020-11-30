@@ -26,7 +26,7 @@ echo "Removing NetworkPolicy on projects..."
 while read -r p; do
     echo ">>Analysing project $p";
 
-    res=$(oc get project test-lucas2 -o json | jq '.metadata.annotations["openshift-network-policies-as-multitenant"]')
+    res=$(oc get project $p -o json | jq '.metadata.annotations["openshift-network-policies-as-multitenant"]')
 
     if [ "$res" = "\"applied\"" ]; then
         while read -r np; do

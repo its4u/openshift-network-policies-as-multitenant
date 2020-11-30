@@ -7,7 +7,6 @@ else
     exit 1
 fi
 
-
 if which oc > /dev/null 2> /dev/null;then
     echo "oc found.";
 else
@@ -23,31 +22,32 @@ else
 fi
 
 
+
+
+
 echo "Retrieving default project template..."
-oc adm create-bootstrap-project-template -o json > default_template.json
+oc adm create-bootstrap-project-template -o json > template.json
 
 echo "Adding Network Policy to template..."
-jq '.objects += [$var1,$var2,$var3]' default_template.json \
-    --slurpfile var1 ./network-policies/allow-same-namespace.json \
-    --slurpfile var2 ./network-policies/allow-from-openshift-ingress.json \
-    --slurpfile var3 ./network-policies/allow-from-openshift-monitoring.json \
-    > new_default_template.json;
+for f in ./network-policies/*.json; do
+    jq '.objects += $var1' \
+        template.json \
+        --slurpfile var1 $f \
+        > new_template.json;
+    mv new_template.json template.json;
+done;
+
+jq '.objects[0].metadata.annotations |= . + { "openshift-network-policies-as-multitenant" : "applied" }' \
+    template.json \
+    > new_template.json;
+mv new_template.json template.json;
 
 echo "Uploading template to cluster..."
-oc create -f new_default_template.json -n openshift-config
+oc apply -f template.json -n openshift-config
 
 echo "Update cluster to use this template by default..."
 oc patch project.config.openshift.io/cluster --type=json \
     -p='[{"op":"replace", "path":"/spec/projectRequestTemplate/name", "value":"project-request"}]'
 
 echo "Cleaning files..."
-rm ./default_template.json
-rm ./new_default_template.json
-
-echo ""
-echo "Done! create new project to verify changes have been made"
-echo "> oc new-project test-network-policy"
-echo "> oc get networkpolicy"
-echo "Should give 3 policies, 'allow-from-openshift-ingress', 'allow-from-openshift-monitoring', 'allow-same-namespace'"
-
-
+rm template.json

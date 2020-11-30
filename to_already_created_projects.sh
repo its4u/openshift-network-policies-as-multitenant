@@ -7,7 +7,6 @@ else
     exit 1
 fi
 
-
 if oc whoami > /dev/null 2> /dev/null; then
     echo "Connected to cluster."
 else
@@ -16,33 +15,25 @@ else
 fi
 
 
+
+
+
 echo "Applying NetworkPolicy on projects..."
 
 while read -r p; do
     echo ">>Analysing project $p";
-    
-    ingress=true;
-    monitoring=true;
-    namespace=true;
 
-    while read -r np; do
-        case $np in
-            "allow-from-openshift-ingress") ingress=false;;
-            "allow-from-openshift-monitoring") monitoring=false;;
-            "allow-same-namespace") namespace=false;;
-            *) echo "unknown policy";;
-        esac
-    done < <(oc get networkpolicy -o name -n $p| sed 's:^networkpolicy.networking.k8s.io/::');
+    res=$(oc get project test-lucas2 -o json | jq '.metadata.annotations["openshift-network-policies-as-multitenant"]')
 
-    if [ "$ingress" = true ];then
-        oc create -n $p -f ./network-policies/allow-from-openshift-ingress.json;
-    fi
-    if [ "$monitoring" = true ];then
-        oc create -n $p -f ./network-policies/allow-from-openshift-monitoring.json;
-    fi
-    if [ "$namespace" = true ];then
-        oc create -n $p -f ./network-policies/allow-same-namespace.json;
-    fi
+    if [ "$res" = "\"applied\"" ]; then
+        echo "Already applied.";
+    else
+        oc annotate namespace $p openshift-network-policies-as-multitenant=applied --overwrite;
+        
+        for f in ./network-policies/*.json; do
+            oc create -n $p -f $f;
+        done;
+    fi;
 done < <(oc projects -q | grep -vE '^(default$|openshift|kube)')
 
 

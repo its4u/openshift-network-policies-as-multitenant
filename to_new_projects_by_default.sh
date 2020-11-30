@@ -1,5 +1,7 @@
 #!/bin/bash
 
+ANNOTATION="openshift-network-policies-as-multitenant"
+
 if which jq > /dev/null 2> /dev/null;then
     echo "jq found.";
 else
@@ -30,6 +32,13 @@ oc adm create-bootstrap-project-template -o json > template.json
 
 echo "Adding Network Policy to template..."
 for f in ./network-policies/*.json; do
+
+    res=$(jq '.metadata.annotations["'$ANNOTATION'"]' $f)
+    if [ ! "$res" = "\"true\"" ]; then
+        jq '.metadata.annotations |= . + { "'$ANNOTATION'" : "true" }' $f > tmp.json;
+        mv tmp.json $f;
+    fi;
+
     jq '.objects += $var1' \
         template.json \
         --slurpfile var1 $f \
@@ -37,7 +46,7 @@ for f in ./network-policies/*.json; do
     mv new_template.json template.json;
 done;
 
-jq '.objects[0].metadata.annotations |= . + { "openshift-network-policies-as-multitenant" : "applied" }' \
+jq '.objects[0].metadata.annotations |= . + { "'$ANNOTATION'" : "applied" }' \
     template.json \
     > new_template.json;
 mv new_template.json template.json;

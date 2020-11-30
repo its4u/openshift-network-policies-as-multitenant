@@ -1,5 +1,7 @@
 #!/bin/bash
 
+ANNOTATION="openshift-network-policies-as-multitenant"
+
 if which jq > /dev/null 2> /dev/null;then
     echo "jq found.";
 else
@@ -22,17 +24,28 @@ else
 fi
 
 
+
+
+
 echo "Removing NetworkPolicy on projects..."
 while read -r p; do
     echo ">>Analysing project $p";
 
-    res=$(oc get project $p -o json | jq '.metadata.annotations["openshift-network-policies-as-multitenant"]')
+    res=$(oc get project $p -o json | jq '.metadata.annotations["'$ANNOTATION'"]')
 
     if [ "$res" = "\"applied\"" ]; then
         while read -r np; do
-            oc delete networkpolicy $np
+
+            res=$(oc get networkpolicy $np -n $p -o json | jq .metadata.annotations[""]);
+            
+            if [ "$res" = "\"true\"" ]; then
+                oc delete networkpolicy $np -n $p;
+            fi;
+
         done < <(oc get networkpolicy -o name -n $p | sed 's:^networkpolicy.networking.k8s.io/::')
 
-        oc annotate namespace $p openshift-network-policies-as-multitenant=notapplied --overwrite;
-    fi;
+        oc annotate namespace $p $ANNOTATION=notapplied --overwrite;
+    else
+        echo "Not concerned..."
+    fi
 done < <(oc projects -q | grep -vE '^(default$|openshift|kube)')

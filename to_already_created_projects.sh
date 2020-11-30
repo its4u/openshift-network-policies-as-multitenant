@@ -1,5 +1,7 @@
 #!/bin/bash
 
+ANNOTATION="openshift-network-policies-as-multitenant"
+
 if which oc > /dev/null 2> /dev/null; then
     echo "oc found."
 else
@@ -23,14 +25,22 @@ echo "Applying NetworkPolicy on projects..."
 while read -r p; do
     echo ">>Analysing project $p";
 
-    res=$(oc get project $p -o json | jq '.metadata.annotations["openshift-network-policies-as-multitenant"]')
+    res=$(oc get project $p -o json | jq '.metadata.annotations["'$ANNOTATION'"]')
+    echo $res
 
     if [ "$res" = "\"applied\"" ]; then
         echo "Already applied.";
     else
-        oc annotate namespace $p openshift-network-policies-as-multitenant=applied --overwrite;
+        oc annotate namespace $p $ANNOTATION=applied --overwrite;
         
         for f in ./network-policies/*.json; do
+
+            res=$(jq '.metadata.annotations["'$ANNOTATION'"]' $f)
+            if [ ! "$res" = "\"true\"" ]; then
+                jq '.metadata.annotations |= . + { "'$ANNOTATION'" : "true" }' $f > tmp.json;
+                mv tmp.json $f;
+            fi;
+
             oc create -n $p -f $f;
         done;
     fi;

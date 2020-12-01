@@ -55,8 +55,16 @@ echo "Uploading template to cluster..."
 oc apply -f template.json -n openshift-config
 
 echo "Update cluster to use this template by default..."
-oc patch project.config.openshift.io/cluster --type=json \
-    -p='[{"op":"replace", "path":"/spec/projectRequestTemplate/name", "value":"project-request"}]'
+res=$(oc get project.config.openshift.io/cluster -o json | jq '.spec.projectRequestTemplate.name')
+if [ "$res" = "null" ]; then
+    oc get project.config.openshift.io/cluster -o json | \
+        jq '.spec.projectRequestTemplate |= . + {"name":"project-request"}' > tmp.json
+    oc apply -f tmp.json -n openshift-config
+    rm tmp.json
+elif [ ! "$res" = "\"project-request\""]; then
+    oc patch project.config.openshift.io/cluster --type=json \
+        -p='[{"op":"replace", "path":"/spec/projectRequestTemplate/name", "value":"project-request"}]'
+fi;
 
 echo "Cleaning files..."
 rm template.json

@@ -26,7 +26,6 @@ while read -r p; do
     echo ">>Analysing project $p";
 
     res=$(oc get project $p -o json | jq '.metadata.annotations["'$ANNOTATION'"]')
-    echo $res
 
     if [ "$res" = "\"applied\"" ]; then
         echo "Already applied.";

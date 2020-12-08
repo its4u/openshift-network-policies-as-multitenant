@@ -49,3 +49,7 @@ while read -r p; do
         echo "Not concerned..."
     fi
 done < <(oc projects -q | grep -vE '^(default$|openshift|kube)')
+
+oc get template project-request -n openshift-config -o json > template.json;
+jq 'del(.objects[] | select(.metadata.annotations["'$ANNOTATION'"]=="true"))' template.json > tmp.json
+mv tmp.json > template.json

@@ -28,7 +28,22 @@ fi
 
 
 echo "Retrieving default project template..."
-oc adm create-bootstrap-project-template -o json > template.json
+pr_exist="false";
+while read -r tp; do
+    if [ "$tp" = "project-request" ]; then
+        pr_exist="true";
+        break;
+    fi;
+done < <(oc get template -n openshift-config -o name | sed "s:template.template.openshift.io/::")
+
+if [ "$pr_exist" = "true" ]; then
+    oc get template project-request -n openshift-config -o json > template.json;
+    jq 'del(.objects[] | select(.metadata.annotations["'$ANNOTATION'"]=="true"))' template.json > tmp.json
+    mv tmp.json template.json
+else
+    oc adm create-bootstrap-project-template -o json > template.json;
+    oc create -f template.json -n openshift-config --save-config
+fi;
 
 echo "Adding Network Policy to template..."
 for f in ./network-policies/*.json; do
@@ -61,7 +76,7 @@ if [ "$res" = "null" ]; then
         jq '.spec.projectRequestTemplate |= . + {"name":"project-request"}' > tmp.json
     oc apply -f tmp.json -n openshift-config
     rm tmp.json
-elif [ ! "$res" = "\"project-request\""]; then
+elif [ ! "$res" = "\"project-request\"" ]; then
     oc patch project.config.openshift.io/cluster --type=json \
         -p='[{"op":"replace", "path":"/spec/projectRequestTemplate/name", "value":"project-request"}]'
 fi;

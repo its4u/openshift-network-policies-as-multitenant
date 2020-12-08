@@ -2,6 +2,13 @@
 
 ANNOTATION="openshift-network-policies-as-multitenant"
 
+if which jq > /dev/null 2> /dev/null;then
+    echo "jq found.";
+else
+    echo "Please install jq";
+    exit 1
+fi
+
 if which oc > /dev/null 2> /dev/null; then
     echo "oc found."
 else
@@ -29,6 +36,8 @@ while read -r p; do
 
     if [ "$res" = "\"applied\"" ]; then
         echo "Already applied.";
+    elif [ "$res" = "\"NotConcerned\"" ]; then
+        echo "Not Concerned";
     else
         oc annotate namespace $p $ANNOTATION=applied --overwrite;
         

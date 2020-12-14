@@ -1,52 +1,47 @@
 #!/bin/bash
 
-ANNOTATION="openshift-network-policies-as-multitenant"
-
-if which jq > /dev/null 2> /dev/null;then
-    echo "jq found.";
-else
-    echo "Please install jq";
-    exit 1
-fi
-
-if which oc > /dev/null 2> /dev/null; then
-    echo "oc found."
-else
-    echo "Please install oc."
-    exit 1
-fi
-
-if oc whoami > /dev/null 2> /dev/null; then
-    echo "Connected to cluster."
-else
-    echo "Not connected to cluster. Please run 'oc login' with administrator credentials."
-    exit 1
-fi
+source functions.sh
+verify_installation
 
 
-if [ $# -eq 0 ] ; then
-    echo "Please specify one or more project names";
-    exit 1;
-fi;
+echo "Exclude selected projects from this patch"
 
+#If no project is given in parameters, use current project
+set $(use_current_project_by_default $@)
+
+#for each parameters given, do
 for p in $@; do
     echo ">>Analysing project $p";
 
+    #Do nothing if project is a default openshift project
+    if [ "$(echo $p | grep -vE '^(default$|openshift|kube)')" = "" ]; then
+        echo "Default OpenShift projects are already excluded."
+        echo "Skipping...";
+        continue;
+    fi;
+
+    #Get the project state
     res=$(oc get project $p -o json | jq '.metadata.annotations["'$ANNOTATION'"]')
 
-    if [ "$res" = "\"applied\"" ]; then
-        while read -r np; do
-
-            res=$(oc get networkpolicy $np -n $p -o json | jq .metadata.annotations[""]);
-            
-            if [ "$res" = "\"true\"" ]; then
-                oc delete networkpolicy $np -n $p;
-            fi;
-
-        done < <(oc get networkpolicy -o name -n $p | sed 's:^networkpolicy.networking.k8s.io/::')
-
-        oc annotate namespace $p $ANNOTATION=NotConcerned --overwrite;
-    else
+    #Do not treate already excluded projects
+    if [ "$res" = "\"NotConcerned\"" ]; then
         echo "Not concerned..."
+    else
+
+        #If project has been applied with the patch, remove the policies
+        if [ "$res" = "\"Applied\"" ]; then
+            while read -r np; do
+
+                res=$(oc get networkpolicy $np -n $p -o json | jq .metadata.annotations[""]);
+                
+                if [ "$res" = "\"true\"" ]; then
+                    oc delete networkpolicy $np -n $p;
+                fi;
+
+            done < <(oc get networkpolicy -o name -n $p | sed 's:^networkpolicy.networking.k8s.io/::')
+        fi;
+
+        #Change the project state
+        oc annotate namespace $p $ANNOTATION=NotConcerned --overwrite;
     fi
 done

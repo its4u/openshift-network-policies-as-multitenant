@@ -1,57 +1,37 @@
 #!/bin/bash
 
-ANNOTATION="openshift-network-policies-as-multitenant"
-
-if which jq > /dev/null 2> /dev/null;then
-    echo "jq found.";
-else
-    echo "Please install jq";
-    exit 1
-fi
-
-if which oc > /dev/null 2> /dev/null; then
-    echo "oc found."
-else
-    echo "Please install oc."
-    exit 1
-fi
-
-if oc whoami > /dev/null 2> /dev/null; then
-    echo "Connected to cluster."
-else
-    echo "Not connected to cluster. Please run 'oc login' with administrator credentials."
-    exit 1
-fi
-
-
-
+source functions.sh
+verify_installation
 
 
 echo "Applying NetworkPolicy on projects..."
 
+#For each project (see "done" for the list)
 while read -r p; do
     echo ">>Analysing project $p";
 
+    #Get the current state of the project
     res=$(oc get project $p -o json | jq '.metadata.annotations["'$ANNOTATION'"]')
 
+    #When project has already been applied with this patch
     if [ "$res" = "\"applied\"" ]; then
         echo "Already applied.";
+    #When the project is excluded from this patch
     elif [ "$res" = "\"NotConcerned\"" ]; then
-        echo "Not Concerned";
+        echo "Not Concerned.";
     else
-        oc annotate namespace $p $ANNOTATION=applied --overwrite;
-        
+        #Apply all network-policies in the folder
         for f in ./network-policies/*.json; do
-
-            res=$(jq '.metadata.annotations["'$ANNOTATION'"]' $f)
-            if [ ! "$res" = "\"true\"" ]; then
-                jq '.metadata.annotations |= . + { "'$ANNOTATION'" : "true" }' $f > tmp.json;
-                mv tmp.json $f;
-            fi;
+            verify_json $f
 
             oc create -n $p -f $f;
         done;
+
+        #change the project state
+        oc annotate namespace $p $ANNOTATION=applied --overwrite;
     fi;
+
+#get all projects name, exclude 'default' and all project begenning with 'openshift' and 'kube'
 done < <(oc projects -q | grep -vE '^(default$|openshift|kube)')
 
 

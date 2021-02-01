@@ -20,7 +20,7 @@ while read -r p; do
         while read -r np; do
 
             #Check if policy has been created by this script
-            res=$(oc get networkpolicy $np -n $p -o json | jq .metadata.annotations[""]);
+            res=$(oc get networkpolicy $np -n $p -o json | jq '.metadata.annotations["'$ANNOTATION'"]');
             
             #Remove the policy only if applied by this script
             if [ "$res" = "\"true\"" ]; then

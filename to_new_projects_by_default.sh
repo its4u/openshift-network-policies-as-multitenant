@@ -66,5 +66,9 @@ elif [ ! "$res" = "\"project-request\"" ]; then
 fi;
 
 
+echo "Update namespace 'default' with correct label..."
+oc label namespaces default network.openshift.io/policy-group=ingress
+
+
 echo "Cleaning files..."
 rm template.json

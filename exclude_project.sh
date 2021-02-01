@@ -27,19 +27,15 @@ for p in $@; do
     if [ "$res" = "\"NotConcerned\"" ]; then
         echo "Not concerned..."
     else
+        while read -r np; do
 
-        #If project has been applied with the patch, remove the policies
-        if [ "$res" = "\"Applied\"" ]; then
-            while read -r np; do
+            res=$(oc get networkpolicy $np -n $p -o json | jq '.metadata.annotations["'$ANNOTATION'"]');
+            
+            if [ "$res" = "\"true\"" ]; then
+                oc delete networkpolicy $np -n $p;
+            fi;
 
-                res=$(oc get networkpolicy $np -n $p -o json | jq .metadata.annotations[""]);
-                
-                if [ "$res" = "\"true\"" ]; then
-                    oc delete networkpolicy $np -n $p;
-                fi;
-
-            done < <(oc get networkpolicy -o name -n $p | sed 's:^networkpolicy.networking.k8s.io/::')
-        fi;
+        done < <(oc get networkpolicy -o name -n $p | sed 's:^networkpolicy.networking.k8s.io/::')
 
         #Change the project state
         oc annotate namespace $p $ANNOTATION=NotConcerned --overwrite;

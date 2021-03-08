@@ -1,13 +1,19 @@
-
+# Openshift - Network Policies as multitenant
 
 ## Description
 
-Thoses scripts help in the deployment of a multitenant policy (when each namespace are isolated from eachother).
+This project contain scripts that help in the deployment of a multitenant policy (when each namespace are isolated from eachother).
+The main scripts are:
 
-The first script, `to_new_projects_by_default.sh`, edit the default project template, to apply the policy to each new projects.\
-The second script, `to_already_created_project.sh`, edit all created project (except project created by openshift) to apply the policy.
+- `to_new_projects_by_default.sh`, edit the default project template, to apply the policy to each new projects.\
+- `to_already_created_project.sh`, apply policies to all project (except: openshift projects and excluded project).
+- `remove_policy.sh`, remove policies that have been have been applied on all projects, and remove the policies on project template.
 
-The last scrip giver, `remove_policy.sh`, remove policies that have been have been applied by the previous script, on all projects.
+Some other script are available for specific use:
+
+- `exclude_project.sh`, force remove policies on current project (or named project). Project will be excluded of the list in `to_already_created_project.sh`
+- `add_project.sh`, force add policies to current project (or named project), even to project that has been excluded.
+
 
 ## Require
 
@@ -18,9 +24,5 @@ Admin access to cluster.
 ## Usage:
 
 ```shell
-bash to_new_projects_by_default.sh
-
-bash to_already_created_project.sh
-
-bash remove_policy.sh
+bash <script>.sh
 ```

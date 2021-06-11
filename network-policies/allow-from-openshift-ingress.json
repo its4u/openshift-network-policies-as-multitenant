@@ -2,10 +2,7 @@
   "apiVersion": "networking.k8s.io/v1",
   "kind": "NetworkPolicy",
   "metadata": {
-    "name": "allow-from-openshift-ingress",
-    "annotations": {
-      "openshift-network-policies-as-multitenant": "true"
-    }
+    "name": "allow-from-openshift-ingress"
   },
   "spec": {
     "ingress": [
@@ -21,9 +18,6 @@
         ]
       }
     ],
-    "podSelector": {},
-    "policyTypes": [
-      "Ingress"
-    ]
+    "podSelector": {}
   }
 }

@@ -1,0 +1,9 @@
+NS_LABEL="namespace-as-isolated-tenant"
+NP_LABEL="network-policy-for-isolated-tenant"
+OPENSHIFT_LABEL="default-openshift-namespace"
+
+TEMPLATE="/tmp/openshift-network-policies-as-multitenant_template.json"
+
+TEMP_FILE="/tmp/openshift-network-policies-as-multitenant_tmp-file.json"
+TEMP_FIL2="/tmp/openshift-network-policies-as-multitenant_tmp-fil2.json"
+  
